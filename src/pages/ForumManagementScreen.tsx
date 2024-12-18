@@ -14,7 +14,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -26,70 +25,50 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-const forumData = [
-  {
-    id: 1,
-    name: "General Discussion",
-    type: "category",
-    topics: 15,
-    lastActivity: "2023-06-15",
-  },
-  {
-    id: 2,
-    name: "Introductions",
-    type: "topic",
-    category: "General Discussion",
-    posts: 50,
-    lastActivity: "2023-06-14",
-  },
-  {
-    id: 3,
-    name: "Technical Support",
-    type: "category",
-    topics: 8,
-    lastActivity: "2023-06-13",
-  },
-  {
-    id: 4,
-    name: "Installation Issues",
-    type: "topic",
-    category: "Technical Support",
-    posts: 30,
-    lastActivity: "2023-06-12",
-  },
-  {
-    id: 5,
-    name: "Feature Requests",
-    type: "category",
-    topics: 5,
-    lastActivity: "2023-06-11",
-  },
-];
+type Forum = {
+  id: number;
+  name: string;
+  categoryName: string;
+  threadCount: number;
+};
 
 const ForumManagementScreen = () => {
+  const [forums, setForums] = useState<Forum[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [newItemName, setNewItemName] = useState("");
   const [newItemType, setNewItemType] = useState<"category" | "topic">(
     "category"
   );
-  const [newItemCategory, setNewItemCategory] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const filteredForumData = forumData.filter((item) =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase())
+  useEffect(() => {
+    const fetchForums = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_REACT_APP_API_URL}/Forum/GetAllForums`
+        );
+        const data = await response.json();
+        if (response.ok) {
+          setForums(data.data);
+        } else {
+          console.error("Failed to fetch forums:", data.message.message);
+        }
+      } catch (error) {
+        console.error("Error fetching forums:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchForums();
+  }, []);
+
+  const filteredForums = forums.filter((forum) =>
+    forum.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  const handleAddItem = () => {
-    console.log("Adding new item:", {
-      name: newItemName,
-      type: newItemType,
-      category: newItemCategory,
-    });
-    setNewItemName("");
-    setNewItemType("category");
-    setNewItemCategory("");
-  };
 
   return (
     <div className="mx-2 py-2">
@@ -136,30 +115,9 @@ const ForumManagementScreen = () => {
                   <option value="topic">Topic</option>
                 </select>
               </div>
-              {newItemType === "topic" && (
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <label htmlFor="category" className="text-right">
-                    Category
-                  </label>
-                  <select
-                    id="category"
-                    value={newItemCategory}
-                    onChange={(e) => setNewItemCategory(e.target.value)}
-                    className="col-span-3"
-                  >
-                    {forumData
-                      .filter((item) => item.type === "category")
-                      .map((category) => (
-                        <option key={category.id} value={category.name}>
-                          {category.name}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-              )}
             </div>
             <DialogFooter>
-              <Button onClick={handleAddItem}>Add Item</Button>
+              <Button>Add Item</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -177,53 +135,51 @@ const ForumManagementScreen = () => {
         </Button>
       </div>
 
-      <Table className="bg-white">
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead className="w-[100px]">ID</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Topics/Posts</TableHead>
-            <TableHead>Last Activity</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredForumData.map((item) => (
-            <TableRow key={item.id} className="hover:bg-transparent">
-              <TableCell className="font-medium">{item.id}</TableCell>
-              <TableCell>{item.name}</TableCell>
-              <TableCell>{item.type}</TableCell>
-              <TableCell>
-                {item.type === "category" ? item.topics : item.posts}
-              </TableCell>
-              <TableCell>{item.lastActivity}</TableCell>
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                      <span className="sr-only">Open menu</span>
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem>Edit {item.type}</DropdownMenuItem>
-                    {item.type === "category" && (
-                      <DropdownMenuItem>Add new topic</DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem>View details</DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-red-600">
-                      Delete {item.type}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
+      {loading ? (
+        <p>Loading ...</p>
+      ) : (
+        <Table className="bg-white">
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="w-[100px]">ID</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Topics/Posts</TableHead>
+              <TableHead>Last Activity</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {filteredForums.map((forum) => (
+              <TableRow key={forum.id} className="hover:bg-transparent">
+                <TableCell className="font-medium">{forum.id}</TableCell>
+                <TableCell>{forum.name}</TableCell>
+                <TableCell>{forum.name}</TableCell>
+                <TableCell>{forum.categoryName}</TableCell>
+                <TableCell>{forum.threadCount}</TableCell>
+                <TableCell className="text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <span className="sr-only">Open menu</span>
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DropdownMenuItem>Edit forum</DropdownMenuItem>
+                      <DropdownMenuItem>View details</DropdownMenuItem>
+                      <DropdownMenuItem className="text-red-600">
+                        Delete forum
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
     </div>
   );
 };

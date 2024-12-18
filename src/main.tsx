@@ -8,6 +8,7 @@ import ForumDetailScreen from "./pages/ForumDetailScreen";
 import { CookiesProvider } from "react-cookie";
 import ThreadScreen from "./pages/ThreadScreen";
 import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import HomeScreen from "./pages/HomeScreen";
 import RegisterForm from "./components/RegisterForm";
 import LoginForm from "./components/LoginForm";
