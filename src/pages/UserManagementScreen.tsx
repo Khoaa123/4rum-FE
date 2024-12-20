@@ -195,7 +195,9 @@ const UserManagementScreen = () => {
           </TableBody>
         </Table>
       )}
-      <Pagination totalPages={totalPages} pageNumber={pageNumber} />
+      {totalPages > 1 && (
+        <Pagination totalPages={totalPages} pageNumber={pageNumber} />
+      )}
     </div>
   );
 };

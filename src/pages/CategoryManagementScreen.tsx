@@ -26,57 +26,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "react-toastify";
-
-type Forum = {
-  id: number;
-  name: string;
-  categoryName: string;
-  threadCount: number;
-};
 
 type Category = {
   id: number;
   name: string;
+  forumCount: number;
 };
 
-const ForumManagementScreen = () => {
-  const [forums, setForums] = useState<Forum[]>([]);
+const CategoryManagementScreen = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [newCategoryName, setNewCategoryName] = useState("");
   const [loading, setLoading] = useState(true);
-  const [newForumName, setNewForumName] = useState("");
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-
-  useEffect(() => {
-    const fetchForums = async () => {
-      try {
-        const response = await fetch(
-          `${import.meta.env.VITE_REACT_APP_API_URL}/Forum/GetAllForums`
-        );
-        const data = await response.json();
-        if (response.ok) {
-          setForums(data.data);
-        } else {
-          console.error("Failed to fetch forums:", data.message.message);
-        }
-      } catch (error) {
-        console.error("Error fetching forums:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchForums();
-  }, []);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -102,27 +65,26 @@ const ForumManagementScreen = () => {
     fetchCategories();
   }, []);
 
-  const filteredForums = forums.filter((forum) =>
-    forum.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredCategories = categories.filter((category) =>
+    category.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleAddForum = async () => {
-    if (!newForumName || !selectedCategoryId) {
-      toast.error("Vui lòng nhập tên và chọn danh mục.");
+  const handleAddCategory = async () => {
+    if (!newCategoryName) {
+      toast.error("Vui lòng nhập tên thể loại.");
       return;
     }
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_REACT_APP_API_URL}/Forum`,
+        `${import.meta.env.VITE_REACT_APP_API_URL}/Category`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            name: newForumName,
-            categoryId: parseInt(selectedCategoryId),
+            name: newCategoryName,
           }),
         }
       );
@@ -130,65 +92,59 @@ const ForumManagementScreen = () => {
       const data = await response.json();
 
       if (response.ok) {
-        toast.success("Tạo forum thành công!");
-        const newForum = {
-          ...data.data,
-          categoryName:
-            categories.find(
-              (category) => category.id === parseInt(selectedCategoryId)
-            )?.name || "",
-        };
-        setForums([...forums, newForum]);
-        setNewForumName("");
-        setSelectedCategoryId("");
+        toast.success("Tạo thể loại thành công!");
+        setCategories([...categories, data.data]);
+        setNewCategoryName("");
         setIsDialogOpen(false);
       } else {
-        toast.error(data.message || "Failed to create forum.");
+        toast.error(data.message || "Failed to create category.");
       }
     } catch (error) {
-      console.error("Error creating forum:", error);
-      toast.error("Error creating forum.");
+      console.error("Error creating category:", error);
+      toast.error("Error creating category.");
     }
   };
 
-  const handleDeleteForum = async (forumId: number) => {
+  const handleDeleteCategory = async (categoryId: number) => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_REACT_APP_API_URL}/Forum/${forumId}`,
+        `${import.meta.env.VITE_REACT_APP_API_URL}/Category/${categoryId}`,
         {
           method: "DELETE",
         }
       );
 
       if (response.ok) {
-        toast.success("Xóa forum thành công!");
-        setForums(forums.filter((forum) => forum.id !== forumId));
+        toast.success("Xóa thể loại thành công!");
+        setCategories(
+          categories.filter((category) => category.id !== categoryId)
+        );
       } else {
         const data = await response.json();
-        toast.error(data.message || "Failed to delete forum.");
+        toast.error(data.message || "Failed to delete category.");
       }
     } catch (error) {
-      console.error("Error deleting forum:", error);
-      toast.error("Error deleting forum.");
+      console.error("Error deleting category:", error);
+      toast.error("Error deleting category.");
     }
   };
 
   return (
     <div className="mx-2 py-2">
       <div className="my-2 flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Forum Management</h2>
+        <h2 className="text-2xl font-bold">Category Management</h2>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button className="bg-sky-600 hover:bg-sky-700">
               <Plus className="mr-1 h-4 w-4" />
-              Tạo Forum
+              Tạo Thể Loại
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-white">
             <DialogHeader>
               <DialogTitle>Thêm mới</DialogTitle>
               <DialogDescription>
-                Tạo một danh mục hoặc chủ đề mới cho diễn đàn của bạn.
+                Tạo một thể loại mới cho diễn đàn của bạn.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -198,36 +154,16 @@ const ForumManagementScreen = () => {
                 </label>
                 <Input
                   id="name"
-                  value={newForumName}
-                  onChange={(e) => setNewForumName(e.target.value)}
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
                   className="col-span-3 focus-visible:border-blue-600 focus-visible:ring-0"
                 />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <label htmlFor="category" className="text-right">
-                  Danh mục
-                </label>
-                <Select onValueChange={(value) => setSelectedCategoryId(value)}>
-                  <SelectTrigger className="col-span-3 focus:border-blue-600 focus:ring-0">
-                    <SelectValue placeholder="Chọn danh mục" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem
-                        key={category.id}
-                        value={category.id.toString()}
-                      >
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
             </div>
             <DialogFooter>
               <Button
                 className="bg-sky-600 hover:bg-sky-700"
-                onClick={handleAddForum}
+                onClick={handleAddCategory}
               >
                 Tạo
               </Button>
@@ -256,18 +192,16 @@ const ForumManagementScreen = () => {
             <TableRow className="hover:bg-transparent">
               <TableHead className="w-[100px]">ID</TableHead>
               <TableHead>Tên</TableHead>
-              <TableHead>Lĩnh vực</TableHead>
-              <TableHead>Số lượng Thread</TableHead>
+              <TableHead>Số lượng Forum</TableHead>
               <TableHead className="text-right">Hành động</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredForums.map((forum) => (
-              <TableRow key={forum.id} className="hover:bg-transparent">
-                <TableCell className="font-medium">{forum.id}</TableCell>
-                <TableCell>{forum.name}</TableCell>
-                <TableCell>{forum.categoryName}</TableCell>
-                <TableCell>{forum.threadCount}</TableCell>
+            {filteredCategories.map((category) => (
+              <TableRow key={category.id} className="hover:bg-transparent">
+                <TableCell className="font-medium">{category.id}</TableCell>
+                <TableCell>{category.name}</TableCell>
+                <TableCell>{category.forumCount}</TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -278,13 +212,13 @@ const ForumManagementScreen = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Các chức năng</DropdownMenuLabel>
-                      <DropdownMenuItem>Edit forum</DropdownMenuItem>
+                      <DropdownMenuItem>Edit category</DropdownMenuItem>
                       <DropdownMenuItem>View details</DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-red-600"
-                        onClick={() => handleDeleteForum(forum.id)}
+                        onClick={() => handleDeleteCategory(category.id)}
                       >
-                        Xóa forum
+                        Xóa category
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -298,4 +232,4 @@ const ForumManagementScreen = () => {
   );
 };
 
-export default ForumManagementScreen;
+export default CategoryManagementScreen;

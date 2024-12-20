@@ -17,6 +17,7 @@ import AdminScreen from "./pages/AdminScreen";
 import UserManagementScreen from "./pages/UserManagementScreen";
 import ForumManagementScreen from "./pages/ForumManagementScreen";
 import RoleManagementScreen from "./pages/RoleManagementScreen";
+import CategoryManagementScreen from "./pages/CategoryManagementScreen";
 
 const router = createBrowserRouter([
   {
@@ -60,6 +61,10 @@ const router = createBrowserRouter([
       {
         path: "forums",
         element: <ForumManagementScreen />,
+      },
+      {
+        path: "categories",
+        element: <CategoryManagementScreen />,
       },
       {
         path: "roles",

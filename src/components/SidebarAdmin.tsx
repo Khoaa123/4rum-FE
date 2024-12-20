@@ -1,4 +1,4 @@
-import { Users, MessagesSquare, ShieldCheck } from "lucide-react";
+import { Users, MessagesSquare, ShieldCheck, FolderTree } from "lucide-react";
 
 import {
   Sidebar,
@@ -22,6 +22,11 @@ const items = [
     title: "Forum",
     url: "/admin/forums",
     icon: MessagesSquare,
+  },
+  {
+    title: "Categories",
+    url: "/admin/categories",
+    icon: FolderTree,
   },
   {
     title: "Roles",

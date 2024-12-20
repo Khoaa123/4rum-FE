@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import avatarDefault from "@/assets/avatar-default.jpg";
 import Chatbot from "@/components/Chatbot";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type Category = {
   id: number;
@@ -11,6 +12,7 @@ type Category = {
 
 const HomeScreen = () => {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -22,6 +24,8 @@ const HomeScreen = () => {
         setCategories(data.data);
       } catch (error) {
         console.error("Error:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -34,21 +38,39 @@ const HomeScreen = () => {
       <div className="container mx-auto mt-2">
         <div className="grid grid-cols-4 gap-5">
           <div className="col-span-3">
-            {categories.map((category) => (
-              <Card
-                className="my-3 overflow-hidden rounded-sm border shadow-none"
-                key={category.id}
-              >
-                <CardHeader className="border-b border-[#d3d5d7] bg-[#e8f4fc] px-4 py-2 outline-none dark:border-[#44494c] dark:bg-[#1D1F20]">
-                  <CardTitle className="text-xl font-normal text-sky-600 dark:text-amber-50">
-                    {category.name}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <ForumCard categoryId={category.id} />
-                </CardContent>
-              </Card>
-            ))}
+            {loading ? (
+              <div>
+                {[1, 2, 3].map((item) => (
+                  <Card
+                    key={item}
+                    className="my-3 overflow-hidden rounded-sm border shadow-none"
+                  >
+                    <CardHeader className="border-b border-[#d3d5d7] bg-[#e8f4fc] px-4 py-2 outline-none dark:border-[#44494c] dark:bg-[#1D1F20]">
+                      <Skeleton className="h-6 w-1/3" />
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <ForumCard categoryId={item} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              categories.map((category) => (
+                <Card
+                  className="my-3 overflow-hidden rounded-sm border shadow-none"
+                  key={category.id}
+                >
+                  <CardHeader className="border-b border-[#d3d5d7] bg-[#e8f4fc] px-4 py-2 outline-none dark:border-[#44494c] dark:bg-[#1D1F20]">
+                    <CardTitle className="text-xl font-normal text-sky-600 dark:text-amber-50">
+                      {category.name}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <ForumCard categoryId={category.id} />
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
           <div className="col-span-1">
             <Card className="my-3 overflow-hidden rounded-sm shadow-none">

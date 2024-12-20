@@ -11,25 +11,25 @@ import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import avatarDefault from "@/assets/avatar-default.jpg";
 import Chatbot from "@/components/Chatbot";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const ForumDetailScreen = () => {
   const params = useParams();
   const [searchParams] = useSearchParams();
   const [threads, setThreads] = useState<Thread[]>([]);
   const [totalPages, setTotalPages] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const pageNumber = searchParams.get("page")
     ? Number(searchParams.get("page"))
     : 1;
 
   useEffect(() => {
     const fetchThreads = async () => {
-      setIsLoading(true);
       try {
         const res = await fetch(
           `${import.meta.env.VITE_REACT_APP_API_URL}/Thread/ThreadsByForum?id=${
             params.id
-          }&pagenumber=${pageNumber}&pagesize=1`
+          }&pagenumber=${pageNumber}&pagesize=10`
         );
         const data = await res.json();
         setThreads(data.data || []);
@@ -37,15 +37,54 @@ const ForumDetailScreen = () => {
       } catch (error) {
         console.error("Error:", error);
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
 
     fetchThreads();
   }, [params.id, pageNumber]);
 
-  if (isLoading) {
-    return <div>Loading...</div>;
+  if (loading) {
+    return (
+      <>
+        <Chatbot />
+        <div className="container mx-auto">
+          <div className="my-3">
+            <Skeleton className="mb-4 h-6 w-1/3" />
+            <Skeleton className="mb-2 h-6 w-1/4" />
+            <Card className="my-3 overflow-hidden rounded-none border-none shadow-none">
+              <CardHeader className="border-b border-[#d3d5d7] bg-fuchsia-50 px-4 py-1 outline-none dark:border-[#3e4346] dark:bg-[#1d1f20]">
+                <Skeleton className="h-8 w-full" />
+              </CardHeader>
+              <CardContent className="p-0">
+                {[1, 2, 3].map((index) => (
+                  <div
+                    key={index}
+                    className="grid grid-cols-6 gap-2 border-b border-[#d3d5d7] px-4 py-2 dark:border-[#3e4346]"
+                  >
+                    <div className="col-span-4 flex gap-3">
+                      <Skeleton className="h-12 w-12 rounded-full" />
+                      <div className="flex-1">
+                        <Skeleton className="mb-2 h-4 w-3/4" />
+                        <Skeleton className="h-3 w-1/2" />
+                      </div>
+                    </div>
+                    <div className="col-span-1">
+                      <Skeleton className="mb-1 h-3 w-full" />
+                      <Skeleton className="h-3 w-2/3" />
+                    </div>
+                    <div className="col-span-1">
+                      <Skeleton className="mb-1 h-3 w-full" />
+                      <Skeleton className="h-3 w-2/3" />
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </>
+    );
   }
 
   const paths = [{ url: "/", label: "Forums" }];
@@ -188,7 +227,9 @@ const ForumDetailScreen = () => {
                     ))}
                   </CardContent>
                 </Card>
-                <Pagination totalPages={totalPages} pageNumber={pageNumber} />
+                {totalPages > 1 && (
+                  <Pagination totalPages={totalPages} pageNumber={pageNumber} />
+                )}
               </div>
             </div>
           )}
