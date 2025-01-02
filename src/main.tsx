@@ -18,6 +18,10 @@ import UserManagementScreen from "./pages/UserManagementScreen";
 import ForumManagementScreen from "./pages/ForumManagementScreen";
 import RoleManagementScreen from "./pages/RoleManagementScreen";
 import CategoryManagementScreen from "./pages/CategoryManagementScreen";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import SearchScreen from "./pages/SearchScreen";
+import ProfileScreen from "./pages/ProfileScreen";
+import SearchDetailScreen from "./pages/SearchDetailScreen";
 
 const router = createBrowserRouter([
   {
@@ -48,6 +52,15 @@ const router = createBrowserRouter([
         path: "post",
         element: <PostThreadScreen />,
       },
+      {
+        path: "search",
+        element: <SearchScreen />,
+      },
+      {
+        path: "search/:keyword",
+        element: <SearchDetailScreen />,
+      },
+      { path: "profile", element: <ProfileScreen /> },
     ],
   },
   {
@@ -78,11 +91,15 @@ const router = createBrowserRouter([
   },
 ]);
 
+const queryClient = new QueryClient();
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <CookiesProvider>
-      <RouterProvider router={router} />
-      <ToastContainer closeOnClick draggable />
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+        <ToastContainer closeOnClick draggable />
+      </QueryClientProvider>
     </CookiesProvider>
   </StrictMode>
 );

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Search, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,89 +20,52 @@ import {
 import Pagination from "@/components/Pagination";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
-
-type User = {
-  id: string;
-  userName: string;
-  displayName: string;
-  avatarUrl: string | null;
-  reactionScore: number;
-  lastActivity: string;
-  role: string;
-};
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchUsers, deleteUser } from "@/utils/api";
+import { User } from "@/types/api";
 
 const UserManagementScreen = () => {
   const [searchParams] = useSearchParams();
-  const [users, setUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState<string | null>(null);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const pageNumber = searchParams.get("page")
     ? Number(searchParams.get("page"))
     : 1;
 
-  const uniqueRoles = Array.from(
-    new Set(users.map((user) => user.role).filter((role) => role))
-  );
+  const { data, error, isLoading } = useQuery({
+    queryKey: ["users", pageNumber],
+    queryFn: () => fetchUsers(pageNumber),
+  });
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch(
-          `${
-            import.meta.env.VITE_REACT_APP_API_URL
-          }/Account/GetAllUsers?pageNumber=${pageNumber}&pageSize=5`
-        );
-        const data = await response.json();
-        if (response.ok) {
-          setUsers(data.data);
-          setTotalPages(data.totalPages || 1);
-        } else {
-          console.error("Failed to fetch users:", data.message.message);
-        }
-      } catch (error) {
-        console.error("Error fetching users:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUsers();
-  }, [pageNumber]);
-
-  const deleteUser = async (userId: string) => {
-    try {
-      const response = await fetch(
-        `https://localhost:7094/api/Account/DeleteUser/${userId}`,
-        {
-          method: "DELETE",
-        }
-      );
-      const data = await response.json();
-      if (response.ok) {
-        toast.success("Xóa người dùng thành công");
-        setUsers((prevUsers) => prevUsers.filter((user) => user.id !== userId));
-      } else {
-        toast.error(data.message.message || "Failed to delete user");
-      }
-    } catch (error) {
-      console.error("Error deleting user:", error);
-      toast.error("Error deleting user");
-    }
-  };
-
-  const filteredUsers = users.filter(
-    (user) =>
-      (user.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.displayName.toLowerCase().includes(searchTerm.toLowerCase())) &&
-      (filterRole ? user.role === filterRole : true)
-  );
+  const deleteUserMutation = useMutation({
+    mutationFn: deleteUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users", pageNumber] });
+      toast.success("Xóa người dùng thành công");
+    },
+    onError: () => {
+      toast.error("Failed to delete user");
+    },
+  });
 
   const handleDeleteUser = (userId: string) => {
-    deleteUser(userId);
+    deleteUserMutation.mutate(userId);
   };
+
+  const filteredUsers =
+    data?.data.filter(
+      (user: User) =>
+        (user.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.displayName.toLowerCase().includes(searchTerm.toLowerCase())) &&
+        (filterRole ? user.role === filterRole : true)
+    ) || [];
+
+  const uniqueRoles = Array.from(
+    new Set(
+      data?.data.map((user: User) => user.role).filter((role: string) => role)
+    )
+  );
 
   return (
     <div className="mx-2 py-2">
@@ -135,16 +98,21 @@ const UserManagementScreen = () => {
               Tất cả
             </DropdownMenuItem>
             {uniqueRoles.map((role) => (
-              <DropdownMenuItem key={role} onClick={() => setFilterRole(role)}>
-                {role}
+              <DropdownMenuItem
+                key={role as string}
+                onClick={() => setFilterRole(role as string)}
+              >
+                {role as string}
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <p>Loading...</p>
+      ) : error ? (
+        <p>Error loading users</p>
       ) : (
         <Table className="bg-white">
           <TableHeader>
@@ -159,7 +127,7 @@ const UserManagementScreen = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredUsers.map((user) => (
+            {filteredUsers.map((user: User) => (
               <TableRow key={user.id} className="hover:bg-transparent">
                 <TableCell className="truncate font-medium">
                   {user.id}
@@ -195,8 +163,11 @@ const UserManagementScreen = () => {
           </TableBody>
         </Table>
       )}
-      {totalPages > 1 && (
-        <Pagination totalPages={totalPages} pageNumber={pageNumber} />
+      {data?.totalPages > 1 && (
+        <Pagination
+          totalPages={data?.totalPages || 1}
+          pageNumber={pageNumber}
+        />
       )}
     </div>
   );

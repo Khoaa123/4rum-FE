@@ -1,9 +1,10 @@
 import { formatDate } from "@/utils/formatDate";
 import { MessageSquare } from "lucide-react";
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import avatarDefault from "@/assets/avatar-default.jpg";
 import { Skeleton } from "./ui/skeleton";
+import { useQuery } from "@tanstack/react-query";
+import { fetchForumsByCategory } from "@/utils/api";
 
 type LatestThread = {
   id: number;
@@ -24,30 +25,14 @@ type Forum = {
 };
 
 const ForumCard = ({ categoryId }: { categoryId: number }) => {
-  const [forums, setForums] = useState<Forum[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchForums = async () => {
-      try {
-        const res = await fetch(
-          `${import.meta.env.VITE_REACT_APP_API_URL}/Forum/${categoryId}`
-        );
-        const data = await res.json();
-        setForums(data.data);
-      } catch (error) {
-        console.error("Error:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchForums();
-  }, [categoryId]);
+  const { data, error, isLoading } = useQuery({
+    queryKey: ["forums", categoryId],
+    queryFn: () => fetchForumsByCategory(categoryId),
+  });
 
   return (
     <>
-      {loading ? (
+      {isLoading ? (
         <div>
           {[1, 2, 3].map((item) => (
             <div
@@ -60,8 +45,10 @@ const ForumCard = ({ categoryId }: { categoryId: number }) => {
             </div>
           ))}
         </div>
+      ) : error ? (
+        <p>Error loading forums</p>
       ) : (
-        forums.map((forum) => (
+        data?.data.map((forum: Forum) => (
           <div key={forum.id}>
             <Link
               to={`/forum/${forum.id}`}

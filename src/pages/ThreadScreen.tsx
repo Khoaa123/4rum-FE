@@ -9,48 +9,54 @@ import { getUserIdFromToken } from "@/utils/auth";
 import { formatDate } from "@/utils/formatDate";
 import { tag } from "@/utils/tag";
 import { Clock3, Dot, Reply, User } from "lucide-react";
-import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import avatarDefault from "@/assets/avatar-default.jpg";
+import { fetchThreadById } from "@/utils/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const ThreadScreen = () => {
   const params = useParams();
   const [searchParams] = useSearchParams();
-  const [thread, setThread] = useState<Thread | null>(null);
-  const [totalPages, setTotalPages] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
   const pageNumber = searchParams.get("page")
     ? Number(searchParams.get("page"))
     : 1;
 
-  useEffect(() => {
-    const fetchThreadById = async () => {
-      setIsLoading(true);
-      try {
-        const res = await fetch(
-          `${import.meta.env.VITE_REACT_APP_API_URL}/Thread/${
-            params.id
-          }?pageNumber=${pageNumber}&pageSize=10`
-        );
-        const data = await res.json();
-        setThread(data.data);
-        setTotalPages(data.totalPages || 1);
-      } catch (error) {
-        console.error("Error:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchThreadById();
-  }, [params.id, pageNumber]);
+  const { data, error, isLoading } = useQuery({
+    queryKey: ["thread", params.id, pageNumber],
+    queryFn: () => fetchThreadById(params.id!, pageNumber),
+  });
 
   const userId = getUserIdFromToken();
   const { user } = useFetchUser(userId || "");
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <>
+        <div className="container mx-auto">
+          <div className="my-3">
+            <Skeleton className="h-7 w-60" />
+            <div className="my-3 flex items-center gap-2">
+              <Skeleton className="h-7 w-40" />
+            </div>
+            <div className="flex items-center text-sm text-gray-400">
+              <Skeleton className="h-7 w-32" />
+            </div>
+            <div className="my-4">
+              <Skeleton className="h-12 w-full" />
+            </div>
+          </div>
+        </div>
+      </>
+    );
   }
+
+  if (error) {
+    return <div>Error: {error.message}</div>;
+  }
+
+  const thread: Thread = data.data;
+  const totalPages = data.totalPages || 1;
 
   if (!thread) {
     return <div>No data available</div>;
@@ -84,7 +90,6 @@ const ThreadScreen = () => {
               <p>{thread.displayName}</p>
             </div>
             <Dot />
-
             <div className="flex items-center gap-1">
               <Clock3 />
               <p>{formatDate(thread.createdAt)}</p>
@@ -123,7 +128,6 @@ const ThreadScreen = () => {
                       <div className="mt-auto flex items-center justify-between">
                         <p>Report</p>
                         <div className="flex items-center gap-2">
-                          {/* <BsReply /> */}
                           <Reply />
                           <p>Reply</p>
                         </div>
@@ -134,10 +138,11 @@ const ThreadScreen = () => {
               </Card>
             )}
             <div className="my-2 h-[0.1px] w-full bg-teal-100 dark:bg-[#44494c]"></div>
-            {/* <CommentThread thread={thread} /> */}
             <CommentThread thread={thread} />
           </div>
-          <Pagination totalPages={totalPages} pageNumber={pageNumber} />
+          {totalPages > 1 && (
+            <Pagination totalPages={totalPages} pageNumber={pageNumber} />
+          )}
         </div>
       </div>
     </>

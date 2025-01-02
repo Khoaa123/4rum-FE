@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useCookies } from "react-cookie";
 import { useUserStore } from "@/stores/User";
 import Editor from "./Editor";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { createComment } from "@/utils/api";
 
 const CreateComment = ({
   threadId,
@@ -23,34 +25,36 @@ const CreateComment = ({
     }
   }, [cookies, setDisplayName]);
 
-  const handleCreate = async () => {
+  const queryClient = useQueryClient();
+
+  const createCommentMutation = useMutation({
+    mutationFn: ({
+      content,
+      threadId,
+      userId,
+    }: {
+      content: string;
+      threadId: number;
+      userId: string;
+    }) => createComment(content, threadId, userId),
+    onSuccess: (data) => {
+      toast.success("Đăng comment thành công");
+      setContent("");
+      onCommentAdded(data.data);
+      queryClient.invalidateQueries({ queryKey: ["comments", threadId] });
+    },
+    onError: (error: any) => {
+      console.error("Error creating comment:", error);
+      toast.error("Error creating comment");
+    },
+  });
+
+  const handleCreate = () => {
     if (content.trim() === "") {
       toast.error("Nội dung không thể để trống");
       return;
     }
-
-    const res = await fetch(
-      `${import.meta.env.VITE_REACT_APP_API_URL}/Comment/Comment`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          Content: content,
-          ThreadId: threadId,
-          UserId: userId,
-          ParentCommentId: null,
-        }),
-      }
-    );
-
-    const data = await res.json();
-    if (res.status === 201) {
-      toast.success("Đăng comment thành công");
-      setContent("");
-      const newComment = await data.data;
-      onCommentAdded(newComment);
-      console.log(data.message || "Error occurred");
-    }
+    createCommentMutation.mutate({ content, threadId, userId });
   };
 
   return (

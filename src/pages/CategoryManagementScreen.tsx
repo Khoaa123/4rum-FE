@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Plus, Search, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,107 +27,61 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "react-toastify";
-
-type Category = {
-  id: number;
-  name: string;
-  forumCount: number;
-};
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchCategories, addCategory, deleteCategory } from "@/utils/api";
+import { Category } from "@/types/api";
 
 const CategoryManagementScreen = () => {
-  const [categories, setCategories] = useState<Category[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [newCategoryName, setNewCategoryName] = useState("");
-  const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await fetch(
-          `${
-            import.meta.env.VITE_REACT_APP_API_URL
-          }/Category?pageNumber=1&pageSize=10`
-        );
-        const data = await response.json();
-        if (response.ok) {
-          setCategories(data.data);
-        } else {
-          console.error("Failed to fetch categories:", data.message.message);
-        }
-      } catch (error) {
-        console.error("Error fetching categories:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const { data, error, isLoading } = useQuery({
+    queryKey: ["categories"],
+    queryFn: fetchCategories,
+  });
 
-    fetchCategories();
-  }, []);
+  const addCategoryMutation = useMutation({
+    mutationFn: addCategory,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      toast.success("Tạo thể loại thành công!");
+      setNewCategoryName("");
+      setIsDialogOpen(false);
+    },
+    onError: () => {
+      toast.error("Failed to create category.");
+    },
+  });
 
-  const filteredCategories = categories.filter((category) =>
-    category.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const deleteCategoryMutation = useMutation({
+    mutationFn: deleteCategory,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      toast.success("Xóa thể loại thành công!");
+    },
+    onError: () => {
+      toast.error("Failed to delete category.");
+    },
+  });
 
-  const handleAddCategory = async () => {
+  const handleAddCategory = () => {
     if (!newCategoryName) {
       toast.error("Vui lòng nhập tên thể loại.");
       return;
     }
-
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_REACT_APP_API_URL}/Category`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name: newCategoryName,
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast.success("Tạo thể loại thành công!");
-        setCategories([...categories, data.data]);
-        setNewCategoryName("");
-        setIsDialogOpen(false);
-      } else {
-        toast.error(data.message || "Failed to create category.");
-      }
-    } catch (error) {
-      console.error("Error creating category:", error);
-      toast.error("Error creating category.");
-    }
+    addCategoryMutation.mutate(newCategoryName);
   };
 
-  const handleDeleteCategory = async (categoryId: number) => {
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_REACT_APP_API_URL}/Category/${categoryId}`,
-        {
-          method: "DELETE",
-        }
-      );
-
-      if (response.ok) {
-        toast.success("Xóa thể loại thành công!");
-        setCategories(
-          categories.filter((category) => category.id !== categoryId)
-        );
-      } else {
-        const data = await response.json();
-        toast.error(data.message || "Failed to delete category.");
-      }
-    } catch (error) {
-      console.error("Error deleting category:", error);
-      toast.error("Error deleting category.");
-    }
+  const handleDeleteCategory = (categoryId: number) => {
+    deleteCategoryMutation.mutate(categoryId);
   };
+
+  const filteredCategories =
+    data?.data.filter((category: Category) =>
+      category.name.toLowerCase().includes(searchTerm.toLowerCase())
+    ) || [];
 
   return (
     <div className="mx-2 py-2">
@@ -184,8 +138,10 @@ const CategoryManagementScreen = () => {
         </Button>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <p>Loading ...</p>
+      ) : error ? (
+        <p>Error loading categories</p>
       ) : (
         <Table className="bg-white">
           <TableHeader>
@@ -197,7 +153,7 @@ const CategoryManagementScreen = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredCategories.map((category) => (
+            {filteredCategories.map((category: Category) => (
               <TableRow key={category.id} className="hover:bg-transparent">
                 <TableCell className="font-medium">{category.id}</TableCell>
                 <TableCell>{category.name}</TableCell>

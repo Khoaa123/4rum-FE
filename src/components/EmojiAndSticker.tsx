@@ -1,29 +1,18 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchEmojisAndStickers } from "@/utils/api";
 
 const EmojiAndSticker = ({ onSelect, style }: any) => {
   const [isActive, setIsActive] = useState("Voz-Bựa");
-  const [urls, setUrls] = useState<string[]>([]);
 
-  const fetchEmojisAndStickers = async (name: string) => {
-    try {
-      const response = await fetch(
-        `${
-          import.meta.env.VITE_REACT_APP_API_URL
-        }/EmojiAndSticker?name=${encodeURIComponent(name)}`
-      );
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-      const data = await response.json();
-      setUrls(data);
-    } catch (error) {
-      console.error("Error ", error);
-    }
-  };
-
-  useEffect(() => {
-    fetchEmojisAndStickers(isActive);
-  }, [isActive]);
+  const {
+    data: urls,
+    error,
+    isLoading,
+  } = useQuery({
+    queryKey: ["emojisAndStickers", isActive],
+    queryFn: () => fetchEmojisAndStickers(isActive),
+  });
 
   return (
     <>
@@ -76,16 +65,22 @@ const EmojiAndSticker = ({ onSelect, style }: any) => {
           </button>
         </div>
         <div className="grid grid-cols-4 py-1 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10">
-          {urls.map((url: string) => (
-            <img
-              key={url}
-              src={url}
-              alt=""
-              width={40}
-              height={40}
-              onClick={() => onSelect(url)}
-            />
-          ))}
+          {isLoading ? (
+            <p>Loading...</p>
+          ) : error ? (
+            <p>Error loading emojis and stickers</p>
+          ) : (
+            urls?.map((url: string) => (
+              <img
+                key={url}
+                src={url}
+                alt=""
+                width={40}
+                height={40}
+                onClick={() => onSelect(url)}
+              />
+            ))
+          )}
         </div>
       </div>
     </>

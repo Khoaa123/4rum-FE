@@ -4,6 +4,8 @@ import "react-quill/dist/quill.snow.css";
 import ImageResize from "quill-image-resize-module-react";
 import { useCommentStore } from "@/stores/Comment";
 import EmojiAndSticker from "./EmojiAndSticker";
+import { useQuery } from "@tanstack/react-query";
+import { fetchCommentById } from "@/utils/api";
 
 declare global {
   interface Window {
@@ -43,7 +45,6 @@ const Editor = ({
   const [isOpenEmoji, setIsOpenEmoji] = useState(false);
   const [isEmojiActive, setIsEmojiActive] = useState(false);
   const quillRef = useRef<ReactQuill>(null);
-  const [commentReply, setCommentReply] = useState<any>(null);
   const { idComment } = useCommentStore();
 
   const emojiHandler = () => {
@@ -92,22 +93,11 @@ const Editor = ({
     []
   );
 
-  useEffect(() => {
-    const fetchCommentId = async () => {
-      if (!idComment) return;
-      try {
-        const res = await fetch(
-          `${import.meta.env.VITE_REACT_APP_API_URL}/Comment/${idComment}`
-        );
-        const data = await res.json();
-        setCommentReply(data.data);
-      } catch (error) {
-        console.error("Error:", error);
-      }
-    };
-
-    fetchCommentId();
-  }, [idComment]);
+  const { data: commentReply } = useQuery({
+    queryKey: ["comment", idComment],
+    queryFn: () => fetchCommentById(idComment!),
+    enabled: !!idComment,
+  });
 
   return (
     <>
@@ -128,11 +118,11 @@ const Editor = ({
         <div className="absolute left-0 right-0 mx-[15px] my-2 translate-y-12 border border-l-[3px] border-l-amber-500 bg-gray-100 dark:bg-[#232627]">
           <div className="bg-stone-50 dark:bg-[#1D1F20]">
             <p className="px-2 py-1 text-amber-400">
-              {commentReply.userName} trả lời:
+              {commentReply.data.userName} trả lời:
             </p>
           </div>
           <p className="px-2 py-1 text-black dark:text-gray-300">
-            {commentReply.content}
+            {commentReply.data.content}
           </p>
         </div>
       )}

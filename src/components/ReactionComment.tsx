@@ -63,7 +63,7 @@ const ReactionComment = ({ reactions }: ReactCommentProps) => {
                 return null;
               })}
             </div>
-            <p className="cursor-pointer py-1 text-start hover:text-amber-400">
+            <p className="cursor-pointer py-1 text-start text-sky-600 hover:text-amber-400 hover:underline">
               {sliceReaction.map((reaction, index) => (
                 <span key={index}>{reaction.userName} </span>
               ))}
@@ -74,7 +74,7 @@ const ReactionComment = ({ reactions }: ReactCommentProps) => {
           </div>
         </DialogTrigger>
         <DialogContent className="block overflow-hidden border-none bg-[#ebeced] p-0 sm:max-w-[800px]">
-          <div className="bg-reaction-comment dark:bg-reaction-comment p-3 text-xl text-[#ebeced] dark:text-amber-50">
+          <div className="bg-sky-600 p-3 text-xl text-[#ebeced] dark:text-amber-50">
             Reaction
           </div>
           <div className="flex items-center gap-3 border-b border-[#b5b9bd] dark:border-[#44494c] dark:bg-[#232627]">

@@ -8,6 +8,9 @@ import { formatDate } from "@/utils/formatDate";
 import { Angry, Laugh, Reply } from "lucide-react";
 import ReactionComment from "./ReactionComment";
 import avatarDefault from "@/assets/avatar-default.jpg";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { addReaction } from "@/utils/api";
+
 type ThreadProp = {
   thread: Thread;
 };
@@ -25,28 +28,24 @@ const CommentThread = ({ thread }: ThreadProp) => {
   const userId = getUserIdFromToken();
   const { user } = useFetchUser(userId || "");
 
-  const handleReaction = async (commentId: number, type: number) => {
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_REACT_APP_API_URL}/Comment/Reaction`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            Type: type,
-            UserId: userId,
-            CommentId: commentId,
-          }),
-        }
-      );
-      const data = await res.json();
-      toast.success(data.message);
-    } catch (error) {
-      console.error("Error adding reaction:", error);
-    }
-  };
+  const queryClient = useQueryClient();
 
-  //   const { setIdComment } = useCommentStore();
+  const addReactionMutation = useMutation({
+    mutationFn: ({ commentId, type }: { commentId: number; type: number }) =>
+      addReaction(commentId, type, userId!),
+    onSuccess: (data) => {
+      toast.success(data.message);
+      queryClient.invalidateQueries({ queryKey: ["comments", thread.id] });
+    },
+    onError: (error: any) => {
+      console.error("Error adding reaction:", error);
+      toast.error("Error adding reaction");
+    },
+  });
+
+  const handleReaction = (commentId: number, type: number) => {
+    addReactionMutation.mutate({ commentId, type });
+  };
 
   return (
     <>

@@ -43,3 +43,26 @@ export type Reaction = {
   userId: string;
   createdAt: string;
 };
+
+export type Category = {
+  id: number;
+  name: string;
+  forumCount: number;
+};
+
+export type Forum = {
+  id: number;
+  name: string;
+  categoryName: string;
+  threadCount: number;
+};
+
+export type User = {
+  id: string;
+  userName: string;
+  displayName: string;
+  avatarUrl: string | null;
+  reactionScore: number;
+  lastActivity: string;
+  role: string;
+};

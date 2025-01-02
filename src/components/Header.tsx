@@ -19,7 +19,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Bell, Mail } from "lucide-react";
-import { Card } from "./ui/card";
 const Header = () => {
   const { setDisplayName, displayName, isLogin, userId } = useUserStore();
   const [cookies, setCookie, removeCookie] = useCookies([
@@ -65,7 +64,7 @@ const Header = () => {
                         asChild
                         className="focus-visible:ring-0"
                       >
-                        <Button className="rounded-none text-white hover:bg-[#354f52] dark:text-[#8cb6de]">
+                        <Button className="rounded-none bg-[#14141426] text-sky-200 transition duration-200 hover:bg-[#0f4367] dark:text-[#8cb6de]">
                           {displayName}
                         </Button>
                       </DropdownMenuTrigger>
@@ -126,10 +125,10 @@ const Header = () => {
                     </DropdownMenu>
                   </div>
                   {/* </Button> */}
-                  <Button className="rounded-none text-white hover:bg-[#354f52] dark:text-[#8cb6de]">
+                  <Button className="rounded-none bg-[#14141426] text-sky-200 transition duration-200 hover:bg-[#0f4367] dark:text-[#8cb6de]">
                     <Mail size={20} />
                   </Button>
-                  <Button className="rounded-none text-white hover:bg-[#354f52] dark:text-[#8cb6de]">
+                  <Button className="rounded-none bg-[#14141426] text-sky-200 transition duration-200 hover:bg-[#0f4367] dark:text-[#8cb6de]">
                     <Bell size={20} />
                   </Button>
                 </div>

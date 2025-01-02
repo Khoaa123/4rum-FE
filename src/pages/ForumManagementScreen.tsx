@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Plus, Search, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,144 +34,85 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "react-toastify";
-
-type Forum = {
-  id: number;
-  name: string;
-  categoryName: string;
-  threadCount: number;
-};
-
-type Category = {
-  id: number;
-  name: string;
-};
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  fetchForums,
+  fetchCategories,
+  addForum,
+  deleteForum,
+} from "@/utils/api";
+import { Category, Forum } from "@/types/api";
 
 const ForumManagementScreen = () => {
-  const [forums, setForums] = useState<Forum[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(true);
   const [newForumName, setNewForumName] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const fetchForums = async () => {
-      try {
-        const response = await fetch(
-          `${import.meta.env.VITE_REACT_APP_API_URL}/Forum/GetAllForums`
-        );
-        const data = await response.json();
-        if (response.ok) {
-          setForums(data.data);
-        } else {
-          console.error("Failed to fetch forums:", data.message.message);
-        }
-      } catch (error) {
-        console.error("Error fetching forums:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const {
+    data: forumsData,
+    error: forumsError,
+    isLoading: forumsLoading,
+  } = useQuery({
+    queryKey: ["forums"],
+    queryFn: fetchForums,
+  });
 
-    fetchForums();
-  }, []);
+  const {
+    data: categoriesData,
+    error: categoriesError,
+    isLoading: categoriesLoading,
+  } = useQuery({
+    queryKey: ["categories"],
+    queryFn: fetchCategories,
+  });
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await fetch(
-          `${
-            import.meta.env.VITE_REACT_APP_API_URL
-          }/Category?pageNumber=1&pageSize=10`
-        );
-        const data = await response.json();
-        if (response.ok) {
-          setCategories(data.data);
-        } else {
-          console.error("Failed to fetch categories:", data.message.message);
-        }
-      } catch (error) {
-        console.error("Error fetching categories:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const addForumMutation = useMutation({
+    mutationFn: ({ name, categoryId }: { name: string; categoryId: number }) =>
+      addForum(name, categoryId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["forums"] });
+      toast.success("Tạo forum thành công!");
+      setNewForumName("");
+      setSelectedCategoryId("");
+      setIsDialogOpen(false);
+    },
+    onError: () => {
+      toast.error("Failed to create forum.");
+    },
+  });
 
-    fetchCategories();
-  }, []);
+  const deleteForumMutation = useMutation({
+    mutationFn: deleteForum,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["forums"] });
+      toast.success("Xóa forum thành công!");
+    },
+    onError: () => {
+      toast.error("Failed to delete forum.");
+    },
+  });
 
-  const filteredForums = forums.filter((forum) =>
-    forum.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const handleAddForum = async () => {
+  const handleAddForum = () => {
     if (!newForumName || !selectedCategoryId) {
       toast.error("Vui lòng nhập tên và chọn danh mục.");
       return;
     }
-
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_REACT_APP_API_URL}/Forum`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name: newForumName,
-            categoryId: parseInt(selectedCategoryId),
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast.success("Tạo forum thành công!");
-        const newForum = {
-          ...data.data,
-          categoryName:
-            categories.find(
-              (category) => category.id === parseInt(selectedCategoryId)
-            )?.name || "",
-        };
-        setForums([...forums, newForum]);
-        setNewForumName("");
-        setSelectedCategoryId("");
-        setIsDialogOpen(false);
-      } else {
-        toast.error(data.message || "Failed to create forum.");
-      }
-    } catch (error) {
-      console.error("Error creating forum:", error);
-      toast.error("Error creating forum.");
-    }
+    addForumMutation.mutate({
+      name: newForumName,
+      categoryId: parseInt(selectedCategoryId),
+    });
   };
 
-  const handleDeleteForum = async (forumId: number) => {
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_REACT_APP_API_URL}/Forum/${forumId}`,
-        {
-          method: "DELETE",
-        }
-      );
-
-      if (response.ok) {
-        toast.success("Xóa forum thành công!");
-        setForums(forums.filter((forum) => forum.id !== forumId));
-      } else {
-        const data = await response.json();
-        toast.error(data.message || "Failed to delete forum.");
-      }
-    } catch (error) {
-      console.error("Error deleting forum:", error);
-      toast.error("Error deleting forum.");
-    }
+  const handleDeleteForum = (forumId: number) => {
+    deleteForumMutation.mutate(forumId);
   };
+
+  const filteredForums =
+    forumsData?.data.filter((forum: Forum) =>
+      forum.name.toLowerCase().includes(searchTerm.toLowerCase())
+    ) || [];
 
   return (
     <div className="mx-2 py-2">
@@ -212,7 +153,7 @@ const ForumManagementScreen = () => {
                     <SelectValue placeholder="Chọn danh mục" />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories.map((category) => (
+                    {categoriesData?.data.map((category: Category) => (
                       <SelectItem
                         key={category.id}
                         value={category.id.toString()}
@@ -248,8 +189,10 @@ const ForumManagementScreen = () => {
         </Button>
       </div>
 
-      {loading ? (
+      {forumsLoading || categoriesLoading ? (
         <p>Loading ...</p>
+      ) : forumsError || categoriesError ? (
+        <p>Error loading data</p>
       ) : (
         <Table className="bg-white">
           <TableHeader>
@@ -262,7 +205,7 @@ const ForumManagementScreen = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredForums.map((forum) => (
+            {filteredForums.map((forum: Forum) => (
               <TableRow key={forum.id} className="hover:bg-transparent">
                 <TableCell className="font-medium">{forum.id}</TableCell>
                 <TableCell>{forum.name}</TableCell>
